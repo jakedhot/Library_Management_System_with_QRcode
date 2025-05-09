@@ -1,0 +1,91 @@
+{% extends 'layouts/user.html' %} 
+
+{% block head %}
+<link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
+{% endblock %}
+
+{% block body %}
+<div class="container">
+    <div class="digital d-flex justify-content-center mt-5 pt-5">
+        <strong><h1>STUDENT DIGITAL LIBRARY CARD</h1></strong>
+    </div>
+
+    <div class="student-info d-flex justify-content-center mt-5 pt-2">
+        <div class="d-flex align-items-center overflow-auto" style="max-height: 400px; padding-right: 10px;">
+            <div>
+                <!-- Displaying student information -->
+                <strong><h4 style="font-family: 'Dancing Script', cursive;">{{ student_data[1] }}, {{ student_data[2] }}</h4></strong>
+                <strong><h5 style="font-family: 'Dancing Script', cursive;">{{ student_data[6] }}</h5></strong>
+            </div>
+            <div class="ms-4 d-flex flex-column align-items-center" style="padding-left: 50px;">
+                <!-- Transaction Buttons -->
+                <strong><h5 style="font-family: 'Dancing Script', cursive;">Transaction:</h5></strong>
+                <div class="d-flex gap-2 mt-2">
+                    <button type="button" class="btn btn-secondary rounded-5" onclick="filterTable('Borrowed')" style="padding: 10px 20px;">Borrowed</button>
+                    <button type="button" class="btn btn-primary rounded-5" onclick="filterTable('Returned')" style="padding: 10px 20px;">Returned</button>
+                    <button type="button" class="btn btn-danger rounded-5" onclick="filterTable('Overdue')" style="padding: 10px 20px;">Overdue</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+
+    <!-- Table for Transactions -->
+    <div class="container p-5">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="table-responsive" style="max-height: 400px; overflow-y: auto; border: 1px solid #ddd;">
+                    <table class="table table-striped table-hover">
+                        <thead class="table-dark" style="position: sticky; top: 0; background-color: #343a40; z-index: 1;">
+                            <tr>
+                                <th>Book Name</th>
+                                <th>Transaction Type</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-body">
+                            {% for book in overdue_books %}
+                            <tr class="transaction-row" data-type="Overdue">
+                                <td>{{ book[0] }}</td> <!-- Assuming index 19 corresponds to the book title -->
+                                <td>Overdue</td>
+                                <td>{{ book[3] }}</td> <!-- Assuming index 3 corresponds to the borrowed date -->
+                            </tr>
+                            {% endfor %}
+                            {% for book in returned_books %}
+                            <tr class="transaction-row" data-type="Returned">
+                                <td>{{ book[8] }}</td>
+                                <td>Returned</td>
+                                <td>{{ book[3] }}</td>
+                            </tr>
+                            {% endfor %}
+                            {% for book in borrowed %}
+                            <tr class="transaction-row" data-type="Borrowed">
+                                <td>{{ book[21] }}</td>
+                                <td>Borrowed</td>
+                                <td>{{ book[3] }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+    function filterTable(type) {
+        var rows = document.querySelectorAll('.transaction-row');
+        rows.forEach(row => {
+            if (type === 'All' || row.getAttribute('data-type') === type) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    }
+    // Initially show all rows
+    filterTable('All');
+    
+</script>
+
+{% endblock %}

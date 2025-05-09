@@ -1,0 +1,448 @@
+{% extends 'layouts/scanqr.html' %}
+{% block body %}
+<!-- Background Video -->
+<video autoplay muted loop id="bgVideo">
+    <source src="{{ url_for('static', filename='img/bg.mp4') }}" type="video/mp4">
+    Your browser does not support HTML5 video.
+</video>
+
+<!-- Scanning QR Code Content -->
+<div class="container-fluid position-relative vh-100 d-flex justify-content-center align-items-center">
+    <div class="text-center">
+        <h2 class="text-light">SCANNING QR CODE</h2>
+        <video id="videoFeed" autoplay playsinline class="img-fluid rounded border border-5 border-danger"></video>
+        <canvas id="qrCanvas" style="display: none;"></canvas>
+    </div>
+</div>
+<div id="dataDisplay"></div>
+
+<!-- Include jsQR and Socket.IO -->
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const videoFeed = document.getElementById("videoFeed");
+        const qrCanvas = document.getElementById("qrCanvas");
+        const canvasContext = qrCanvas.getContext("2d");
+        const dataDisplay = document.getElementById("dataDisplay");
+
+        // Access the camera
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+            .then(function (stream) {
+                videoFeed.srcObject = stream;
+                videoFeed.play();
+                requestAnimationFrame(scanQRCode);
+            })
+            .catch(function (err) {
+                console.error("Error accessing the camera:", err);
+                alert("Failed to access the camera. Please ensure you have granted permission.");
+            });
+
+        // Function to scan QR codes
+        function scanQRCode() {
+            if (videoFeed.readyState === videoFeed.HAVE_ENOUGH_DATA) {
+                qrCanvas.width = videoFeed.videoWidth;
+                qrCanvas.height = videoFeed.videoHeight;
+                canvasContext.drawImage(videoFeed, 0, 0, qrCanvas.width, qrCanvas.height);
+
+                const imageData = canvasContext.getImageData(0, 0, qrCanvas.width, qrCanvas.height);
+                const code = jsQR(imageData.data, imageData.width, imageData.height, {
+                    inversionAttempts: "dontInvert",
+                });
+
+                if (code) {
+                    console.log("Scanned QR Code (Raw):", code.data);  // Debugging
+
+                    // Parse the QR code data (plain text or JSON)
+                    let parsedData;
+                    if (isValidJSON(code.data)) {
+                        // If the data is valid JSON, parse it
+                        parsedData = JSON.parse(code.data);
+                    } else {
+                        // If the data is plain text, convert it to JSON
+                        parsedData = parsePlainTextData(code.data);
+                    }
+
+                    // Validate the parsed data structure
+                    if (parsedData && validateQRData(parsedData)) {
+                        // Emit the scanned data via Socket.IO (if needed)
+                        socket.emit("scan_qr_code", { code: parsedData });
+
+                        // Display the modal with the scanned data
+                        showModal(parsedData);
+                    } else {
+                        console.error("Invalid QR code data structure:", parsedData);  // Debugging
+                        alert("Invalid QR Code Format: Data structure is incorrect.");
+                    }
+                }
+            }
+            requestAnimationFrame(scanQRCode);
+        }
+
+        // Function to check if a string is valid JSON
+        function isValidJSON(data) {
+            try {
+                JSON.parse(data);
+                return true;
+            } catch (e) {
+                return false;
+            }
+        }
+
+        // Function to parse plain text data into a JSON object
+        function parsePlainTextData(data) {
+            const lines = data.split("\n");  // Split the data by newlines
+            const result = {};
+
+            lines.forEach(line => {
+                const [key, value] = line.split(":").map(part => part.trim());  // Split each line by ":" and trim whitespace
+                if (key && value) {
+                    result[key] = value;  // Add the key-value pair to the result object
+                }
+            });
+
+            // Add the "Type" field if it's not already present
+            if (!result.Type) {
+                result.Type = "Student";  // Default to "Student" if the type is not specified
+            }
+
+            return result;
+        }
+
+        // Function to validate the structure of the QR code data
+        function validateQRData(data) {
+            if (data.Type === "Student") {
+                return (
+                    data.Name !== undefined &&
+                    data.Birthdate !== undefined &&
+                    data.Phone !== undefined &&
+                    data.Email !== undefined &&
+                    data.USN !== undefined &&
+                    data.Program !== undefined &&
+                    data.Year !== undefined
+                );
+            } else if (data.Type === "Book") {
+                return (
+                    data.AccessionNumber !== undefined &&
+                    data.BookTitle !== undefined &&
+                    data.Author !== undefined &&
+                    data.Genre !== undefined &&
+                    data.PublicationYear !== undefined
+                );
+            } else {
+                return false;
+            }
+        }
+
+        // Function to display the modal with scanned data
+        function showModal(data) {
+            const modalContent = generateModalContent(data);
+
+            const modal = document.createElement("div");
+            modal.className = "modal";
+            modal.innerHTML = modalContent;
+            document.body.appendChild(modal);
+
+            modal.style.display = "block";
+
+            // Close the modal when the close button is clicked
+            const closeButton = modal.querySelector(".close");
+            closeButton.onclick = function () {
+                modal.style.display = "none";
+                document.body.removeChild(modal);
+            };
+
+            // Handle "Borrow" button click (for student modal)
+            const borrowButton = modal.querySelector("#borrowButton");
+            if (borrowButton) {
+                borrowButton.onclick = function () {
+                    sessionStorage.setItem("previousButtonClicked", "borrow");
+                    setTimeout(function () {
+                        alert('Please Scan Book QR');
+                    }, 4000);
+                    fetch("/process_transaction", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify(data),
+                    })
+                        .then((response) => response.text())
+                        .then((data) => handleTransactionResponse(data))
+                        .catch((error) => console.error("Error:", error));
+                };
+            }
+
+            // Handle "Return" button click (for student modal)
+            const returnButton = modal.querySelector("#returnButton");
+            if (returnButton) {
+                returnButton.onclick = function () {
+                    sessionStorage.setItem("previousButtonClicked", "return");
+                    setTimeout(function () {
+                        alert('Please Scan Book QR');
+                    }, 4000);
+                    fetch("/process_return", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify(data),
+                    })
+                        .then((response) => response.text())
+                        .then((data) => handleTransactionResponse(data))
+                        .catch((error) => console.error("Error:", error));
+                };
+            }
+
+            // Handle "Confirm" button click (for book modal)
+            const confirmButton = modal.querySelector("#confirmButton");
+            if (confirmButton) {
+                confirmButton.onclick = function () {
+                    const value = sessionStorage.getItem("previousButtonClicked");
+                    if (value === "borrow") {
+                        fetch("/process_transaction", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                            },
+                            body: JSON.stringify(data),
+                        })
+                            .then((response) => response.text())
+                            .then((data) => handleTransactionResponse(data))
+                            .catch((error) => console.error("Error:", error));
+                    } else if (value === "return") {
+                        fetch("/process_return", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                            },
+                            body: JSON.stringify(data),
+                        })
+                            .then((response) => response.text())
+                            .then((data) => handleTransactionResponse(data))
+                            .catch((error) => console.error("Error:", error));
+                    } else {
+                        alert("Select Borrow or Return before confirming the transaction");
+                        window.location.href = "/transactions";
+                    }
+                };
+            }
+        }
+
+        // Function to generate modal content based on QR code data
+        function generateModalContent(data) {
+            if (data.Type === "Student") {
+                return `
+                    <div class="modal-content" style="max-width: 700px;">
+                        <span class="close">&times;</span>
+                        <div class="d-flex justify-content-center align-items-center">
+                            <div class="form-group mb-3 text-center">
+                                <img src="static/img/121.png" id="profileImage" alt="Student Image" 
+                                style="width: 150px; height: 150;">
+                            </div>
+                            <div style="flex: 1; padding-left: 30px">
+                                <h2>Student QR Code Scanned</h2>
+                                <div><strong>Name:</strong> ${data.Name}</div>
+                                <div><strong>Birthdate:</strong> ${data.Birthdate}</div>
+                                <div><strong>Phone:</strong> ${data.Phone}</div>
+                                <div><strong>Email:</strong> ${data.Email}</div>
+                                <div><strong>USN:</strong> ${data.USN}</div>
+                                <div><strong>Program:</strong> ${data.Program}</div>
+                                <div><strong>Year:</strong> ${data.Year}</div>
+                            </div>
+                        </div>
+                        <div class="text-center" style="margin-top: 20px;">
+                            <button id="borrowButton" type="button" class="btn btn-success">
+                            Borrow Book</button>
+                            <button id="returnButton" type="button" class="btn btn-warning">
+                            Return Book</button>
+                        </div>
+                    </div>`;
+            } else if (data.Type === "Book") {
+                return `
+                    <div class="modal-content" style="max-width: 700px;">
+                        <span class="close">&times;</span>
+                        <div class="d-flex justify-content-center align-items-center">
+                            <div style="flex: 0 0 150px; margin-right: 20px;">
+                                <img src="static/img/122.png" alt="Book Cover" style="width: 150px; 
+                                height: auto;">
+                            </div>
+                            <div style="flex: 1; padding-left: 30px">
+                                <h3>Book Information</h3>
+                                <div><strong>Title:</strong> ${data.BookTitle}</div>
+                                <div><strong>Author:</strong> ${data.Author}</div>
+                                <div><strong>Genre:</strong> ${data.Genre}</div>
+                                <div><strong>Published Year:</strong> ${data.PublicationYear}</div>
+                            </div>
+                        </div>
+                        <div class="text-center" style="margin-top: 20px;">
+                            <button id="confirmButton" type="button" class="btn btn-success btn-sm" 
+                            style="width:100px;">Confirm</button>
+                        </div>
+                    </div>`;
+            } else {
+                return `<div class="modal-content"><span class="close">&times;</span><p>Invalid QR Code</p></div>`;
+            }
+        }
+
+        // Handle transaction response
+        function handleTransactionResponse(data) {
+            console.log("Transaction response:", data);  // Debugging
+            switch (data) {
+                case "Student not found in the system":
+                    alert("Student not found in the system!");
+                    window.location.href = "/transactions";
+                    break;
+                case "Book not found in the system":
+                    alert("Book not found in the system!");
+                    window.location.href = "/transactions";
+                    break;
+                case "Book Borrowed":
+                    alert("Book is already borrowed!");
+                    window.location.href = "/transactions";
+                    break;
+                case "Book Returned":
+                    alert("Book is available!");
+                    window.location.href = "/transactions";
+                    break;
+                case "Waiting for student data":
+                    alert("Scan student QR code first!");
+                    window.location.href = "/transactions";
+                    break;
+                case "QR Code not recognized":
+                    alert("QR Code not recognized!");
+                    window.location.href = "/transactions";
+                    break;
+                case "Invalid transaction type":
+                    alert("Invalid transaction type!");
+                    window.location.href = "/transactions";
+                    break;
+                default:
+                    const value = sessionStorage.getItem("previousButtonClicked");
+                    data = JSON.parse(data);
+                    if (data.Type == "Student") {
+                        window.location.href = "/transactions";
+                    } else if (value == "borrow") {
+                        sessionStorage.removeItem("previousButtonClicked");
+                        window.location.href = "/borrow";
+                    } else if (value == "return") {
+                        sessionStorage.removeItem("previousButtonClicked");
+                        window.location.href = "/return_books";
+                    } else {
+                        window.location.href = "/transactions";
+                    }
+                    break;
+            }
+        }
+
+        // Stop the camera feed when the page is unloaded
+        window.addEventListener("beforeunload", function () {
+            if (videoFeed.srcObject) {
+                videoFeed.srcObject.getTracks().forEach(track => track.stop());
+            }
+        });
+    });
+
+    // Socket.IO connection
+    const socket = io.connect("http://" + document.domain + ":" + location.port + "/test");
+
+    socket.on("connect", function () {
+        console.log("Connected to Socket.IO server");  // Debugging
+    });
+
+    socket.on("qr_data", function (data) {
+        console.log("Received QR data:", data);  // Debugging
+
+        if (data.Type === "Invalid") {
+            alert("Invalid QR Code Format");
+            return;
+        }
+
+        // Display the modal with the scanned data
+        showModal(data);
+    });
+</script>
+
+<style>
+    /* Background Video */
+    #bgVideo {
+        position: fixed;
+        right: 0;
+        bottom: 0;
+        top: -17%;
+        left: -8%;
+        min-width: 100%;
+        min-height: 100%;
+        z-index: -1;
+        object-fit: cover;
+    }
+
+    /* Scanner Interface */
+    #videoFeed {
+        width: 100%;
+        max-width: 600px;
+        border: 5px solid #ff5252;
+        border-radius: 10px;
+    }
+
+    /* Modal Dialog */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 9999;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(0, 0, 0, 0.4);
+    }
+
+    .modal-content {
+        background-color: #fefefe;
+        margin: 15% auto;
+        padding: 20px;
+        border-radius: 10px;
+        max-width: 80%;
+    }
+
+    .close {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+    }
+
+    .close:hover,
+    .close:focus {
+        color: black;
+        text-decoration: none;
+        cursor: pointer;
+    }
+
+    /* Transaction Page */
+    .transaction-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .transaction-card {
+        background-color: #fff;
+        border-radius: 10px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
+        padding: 20px;
+    }
+
+    .transaction-card h3 {
+        margin-top: 0;
+        margin-bottom: 10px;
+    }
+
+    .transaction-card p {
+        margin-top: 0;
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,9 @@
+flask
+flask_mysqldb
+pyzbar
+qrcode
+reedsolo
+opencv-python
+flask_socketio
+pillow
+python-dotenv

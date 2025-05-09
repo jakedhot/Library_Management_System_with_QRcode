@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+       
+        <title>ACLC College | LMS</title>
+        
+    </head>
+    <body class="body-layout" style="overflow: hidden;">
+        {% include 'includes/header.html' %}
+        <div class="d-flex">
+            {% include 'includes/sidebar.html' %}
+            
+            {% block body %}
+            {% endblock %}
+        </div>
+        <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+        <script>
+            $(document).ready(function(){
+                // Add active class when link is clicked
+                $('.nav-link').click(function(){
+                    $('.nav-link').removeClass('active');
+                    $(this).addClass('active');
+                });
+            });
+        </script>
+    </body>
+</html>

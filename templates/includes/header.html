@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Navbar</title>
+    <style>
+        .navbar {
+            position: relative;
+            background-image: url('/static/img/bg1.jpg');
+            background-size: cover;
+            height: 120px;
+        }
+
+        .navbar-brand {
+            font-size: 24px; /* Bigger font size */
+            font-weight: bold; /* Bold text */
+            color: white; /* Text color */
+            transition: color 0.3s; /* Smooth transition */
+        }
+
+        .navbar-brand:hover {
+            color: lightgray; /* Change color on hover */
+        }
+
+        .navbar-toggler-icon {
+            filter: brightness(70%); /* Lighter icon color */
+        }
+
+        .dropdown .nav-link img {
+            filter: brightness(0) invert(1); /* White profile icon */
+        }
+
+        .dropdown .nav-link strong {
+            color: white; /* White name */
+        }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-light">
+    <div class="background-overlay"></div>
+    <div class="container-fluid px-5">
+        <a class="navbar-brand" href="/">
+            <img
+                src="/static/img/aclc_logo.png"
+                alt="Logo"
+                width="60"
+                height="70"
+                class="d-inline-block align-text-top me-2"
+            />
+            <span>ACLC College of Butuan</span>
+        </a>
+        <button
+            class="navbar-toggler"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent"
+            aria-expanded="false"
+            aria-label="Toggle navigation"
+        >
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav ms-auto mb-2 mb-lg-0 px-3">
+            </ul>
+            <div class="dropdown">
+                <a
+                    class="nav-link dropdown-toggle"
+                    href="#"
+                    id="navbarDropdown"
+                    role="button"
+                    data-bs-toggle="dropdown"
+                    aria-expanded="false"
+                >
+                    <img
+                        src="/static/img/user.png"
+                        alt=""
+                        width="60"
+                        height="60"
+                        class="rounded-circle me-2"
+                    />
+                    <strong>{{ session['fname'] }}</strong>
+                </a>
+                <ul
+                    class="dropdown-menu dropdown-menu-end"
+                    aria-labelledby="navbarDropdown"
+                >
+                    <li><a class="dropdown-item" href="#">Profile</a></li>
+                    <li><hr class="dropdown-divider" /></li>
+                    <li>
+                        <a class="dropdown-item" href="{{ url_for('logout') }}"
+                            >Sign out</a
+                        >
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</nav>
+
+</body>
+</html>

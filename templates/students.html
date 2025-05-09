@@ -1,0 +1,458 @@
+{% extends 'layouts/user.html' %} 
+{% block body %}
+<div class="container-fluid p-4">
+    <div class="card-header d-flex justify-content-between align-items-center align p-3">
+        <h1>Student List</h1>
+        <button type="button" class="btn btn-primary rounded-end-1" style="height: 40px; width: 160px" data-bs-toggle="modal" data-bs-target="#exampleModal">
+            Click to Add
+        </button>
+
+        <!-- Modal - Register Student -->
+        <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h1 class="modal-title fs-5" id="exampleModalLabel">Add Student</h1>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body" style="max-height: 400px; overflow-y: auto;">
+                        <!-- students.html -->
+                        <form class="p-3" id="add_student_form" action="{{ url_for('add_student') }}" method="post" enctype="multipart/form-data">
+                            <div class="mb-3 d-flex gap-3">
+                                <div class="p-2 w-100">
+                                    <div class="form-group d-flex gap-3 mb-3">
+                                        <div class="firstname">
+                                            <label for="fname" class="form-label">First Name</label>
+                                            <input type="text" name="fname" class="form-control" id="fname" required />
+                                        </div>
+                                        <div class="lastname">
+                                            <label for="lname" class="form-label">Last Name</label>
+                                            <input type="text" name="lname" class="form-control" id="lname" required />
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group mb-2">
+                                        <label for="birthdate" class="form-label">Birthdate</label>
+                                        <input type="date" name="birthdate" class="form-control" id="birthdate" required />
+                                    </div>
+
+                                    <div class="form-group mb-2">
+                                        <label for="phone" class="form-label">Phone</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">+63</span>
+                                            <input type="text" name="phone" class="form-control" id="phone" placeholder="10 numbers skip the zero" required />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="p-2 w-100">
+                                    <div class="form-group mb-2">
+                                        <label for="email" class="form-label">Email</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">@</span>
+                                            <input type="email" name="email" class="form-control" id="email" placeholder="@aclcbutuan.edu.ph" required />
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group mb-2">
+                                        <label for="usn" class="form-label">USN</label>
+                                        <input type="text" name="usn" class="form-control" id="usn" placeholder="11 number usn" required />
+                                    </div>
+                                    <div class="form-group mb-2">
+                                        <label for="profileYear" class="form-label">Year</label>
+                                        <select name="year" class="form-select" id="profileYear" required>
+                                            <option value="1st Year">1st Year</option>
+                                            <option value="2nd Year">2nd Year</option>
+                                            <option value="3rd Year">3rd Year</option>
+                                            <option value="4th Year">4th Year</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group mb-2">
+                                        <label for="profileCourse" class="form-label">Program</label>
+                                        <select name="course" class="form-select" id="profileCourse" required>
+                                            <option value="BS in Computer Science">BS in Computer Science</option>
+                                            <option value="BS in Information Technology">BS in Information Technology</option>
+                                            <option value="BS in Financial Marketing">BS in Financial Marketing</option>
+                                            <option value="BS in Business Administration">BS in Business Administration</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-group mb-5">
+                                <label for="student_picture" class="form-label">Student Image</label>
+                                <div class="input-group">
+                                    <input type="file" class="form-control" name="student_picture" id="student_picture" accept="image/*" capture="camera" required>
+                                    <label class="input-group-text" for="student_picture"></label>
+                                </div>
+                            </div>
+                            <div class="d-flex flex-row-reverse gap-2">
+                                <button type="submit" class="btn btn-primary">Save changes</button>
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="px-3">
+        <!-- Search Input -->
+        <div class="mb-3">
+            <input type="text" id="searchInput" class="form-control" placeholder="Search students by name, USN, email, etc.">
+        </div>
+
+        <!-- Table -->
+        <table class="table table-hover mt-3" style="display: block; overflow-x: auto; max-width: 100%;">
+            <thead class="table-dark sticky-header">
+                <tr>
+                    <th scope="col">#</th>
+                    <th scope="col">Profile</th>
+                    <th scope="col">Name</th>
+                    <th scope="col">Birthdate</th>
+                    <th scope="col">Phone</th>
+                    <th scope="col">Email</th>
+                    <th scope="col">USN</th>
+                    <th scope="col">Program</th>
+                    <th scope="col">Year</th>
+                    <th scope="col">QR Code</th>
+                    <th scope="col">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="studentTableBody">
+                {% for student in students %}
+                <tr>
+                    <td scope="row">{{ loop.index }}</td>
+                    <td>
+                        <center><img src="{{ url_for('static', filename=student[9]) }}" alt="Student Image" style="width: 50px; height: 50px;"></center>
+                    </td>
+                    <td>
+                        <a method="post" href="{{ url_for('digital_lib_card', student_id = student[0]) }}">{{ student[2] }}, {{ student[1] }}</a>
+                    </td>
+                    <td>{{ student[3] }}</td>
+                    <td>{{ student[4] }}</td>
+                    <td>{{ student[5] }}</td>
+                    <td>{{ student[6] }}</td>
+                    <td>{{ student[7] }}</td>
+                    <td>{{ student[8] }}</td>
+                    <td>
+                        <a href="#" data-bs-toggle="modal" data-bs-target="#qrModal" 
+                           data-qrcode="{{ student[10] }}"
+                           data-student-name="{{ student[2] }}, {{ student[1] }}">View</a>
+                    </td>
+                    <td>
+                        <a href="#" data-bs-toggle="modal" data-bs-target="#profileModal" data-data='{
+                            "id": "{{ student[0] }}",
+                            "fname": "{{ student[1] }}",
+                            "lname": "{{ student[2] }}",
+                            "birthDate": "{{ student[3] }}",
+                            "phone": "{{ student[4] }}",
+                            "email": "{{ student[5] }}",
+                            "usn": "{{ student[6] }}",
+                            "course": "{{ student[7] }}",
+                            "year": "{{ student[8] }}",
+                            "profile_img": "{{ student[9] }}"
+                        }' class="btn btn-warning openEditStudentModal">Edit</a>
+                        <a method="POST" href="{{ url_for('student_delete_data', student_id = student[0]) }}" class="btn btn-danger">Delete</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal for QR Code -->
+<div class="modal fade" id="qrModal" aria-labelledby="qrCodeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <!-- Modal Header -->
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="qrModalLabel">Student's QR Code</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <!-- Modal Body -->
+            <div class="modal-body text-center">
+                <h5 id="studentNameDisplay" class="mb-3"></h5>
+                <div id="qr_code_container" style="border: 3px solid rgb(6, 2, 238); padding: 10px;">
+                    <!-- QR Code Image will be inserted here -->
+                </div>
+            </div>
+            <!-- Modal Footer -->
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Student Modal -->
+<div class="modal fade" id="editStudentModal" tabindex="-1" aria-labelledby="modalEditStudentTargetLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <!-- Modal Header -->
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="modalEditStudentTargetLabel">Edit Student</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="modal-body">
+                <form class="p-3" id="editStudentForm" method="post" enctype="multipart/form-data">
+                    <div class="row">
+                        <!-- Student Image on the Left Side -->
+                        <div class="col-md-4">
+                            <div class="form-group mb-3">
+                                <div id="currentStudentImgContainer">
+                                    <!-- Current Image -->
+                                    <img id="currentStudentImg" src="" alt="Current Student Image" style="width: 100%; height: auto; padding-bottom: 10px;">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="editStudentImg" class="form-label">Upload New Image</label>
+                                    <input type="file" name="student_picture" class="form-control" id="editStudentImg" accept="image/*">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Form Data on the Right Side -->
+                        <div class="col-md-8">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="editFName" class="form-label">First Name</label>
+                                    <input type="text" name="first_name" class="form-control" id="editFName" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="editLName" class="form-label">Last Name</label>
+                                    <input type="text" name="last_name" class="form-control" id="editLName" required>
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="editBirthdate" class="form-label">Birthdate</label>
+                                    <input type="date" name="birth_date" class="form-control" id="editBirthdate" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="editPhone" class="form-label">Phone</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">+63</span>
+                                        <input type="text" name="contact_number" class="form-control" id="editPhone" required>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="editEmail" class="form-label">Email</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">@</span>
+                                        <input type="email" name="email" class="form-control" id="editEmail" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="editUsn" class="form-label">USN</label>
+                                    <input type="text" name="usn" class="form-control" id="editUsn" required>
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="editYear" class="form-label">Year</label>
+                                    <select name="year" class="form-control" id="editYear" required>
+                                        <option value="1st Year">1st Year</option>
+                                        <option value="2nd Year">2nd Year</option>
+                                        <option value="3rd Year">3rd Year</option>
+                                        <option value="4th Year">4th Year</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="editCourse" class="form-label">Program</label>
+                                    <select name="program" class="form-control" id="editCourse" required>
+                                        <option value="BS in Computer Science">BS in Computer Science</option>
+                                        <option value="BS in Information Technology">BS in Information Technology</option>
+                                        <option value="BS in Financial Marketing">BS in Financial Marketing</option>
+                                        <option value="BS in Business Administration">BS in Business Administration</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Hidden Input for Student ID -->
+                            <input type="hidden" name="student_id" id="editStudentId">
+                            <!-- Hidden Input for Existing Image Path -->
+                            <input type="hidden" name="existing_image_path" id="existingImagePath">
+
+                            <!-- Buttons -->
+                            <div class="row mb-3">
+                                <div class="col-md-12 d-flex justify-content-end">
+                                    <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Close</button>
+                                    <button type="submit" class="btn btn-primary">Save changes</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Flash Message Toast -->
+<div id="flashMessage" class="toast align-items-center position-fixed bottom-0 end-0 mb-4 me-4" role="alert" aria-live="assertive" aria-atomic="true" data-bs-autohide="false">
+    <div class="toast-header">
+        <strong class="me-auto">Message</strong>
+        <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+    <div class="toast-body">
+        {% with messages = get_flashed_messages(with_categories=true) %} {% if messages %} {% for category, message in messages %}
+        <div class="alert alert-{{ category }}" role="alert">{{ message }}</div>
+        {% endfor %} {% endif %} {% endwith %}
+    </div>
+</div>
+
+
+
+<style>
+    .qr-code-container {
+        border: 3px solid rgb(6, 2, 238); padding: 10px;
+    }
+</style>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.19.5/jquery.validate.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    
+    $(document).ready(function () {
+    // Open the edit student modal and populate it with data
+    $(document).on("click", ".openEditStudentModal", function () {
+        // Get the student data from the data attributes
+        var studentData = $(this).data("data");
+
+        // Log the data for debugging
+        console.log("Student data from button:", studentData);
+
+        // Set form action and populate fields
+        $("#editStudentForm").attr("action", "{{ url_for('update_student') }}");
+        $("#editFName").val(studentData.fname);
+        $("#editLName").val(studentData.lname);
+        $("#editBirthdate").val(studentData.birthDate);
+        $("#editPhone").val(studentData.phone);
+        $("#editEmail").val(studentData.email);
+        $("#editUsn").val(studentData.usn);
+        $("#editYear").val(studentData.year);
+        $("#editCourse").val(studentData.course);
+        $("#editStudentId").val(studentData.id); // Set the student ID
+        $("#existingImagePath").val(studentData.profile_img); // Set the existing image path
+
+        // Set the current image
+        var currentImagePath = studentData.profile_img;
+        if (currentImagePath) {
+            $("#currentStudentImg").attr("src", "{{ url_for('static', filename='') }}" + currentImagePath);
+        } else {
+            $("#currentStudentImg").attr("src", ""); // Clear the image if no path is available
+        }
+
+        // Show the modal
+        $("#editStudentModal").modal("show");
+    });
+
+    // Handle image upload preview
+    document.getElementById("editStudentImg").addEventListener("change", function (event) {
+        var reader = new FileReader();
+        reader.onload = function () {
+            var imgElement = document.getElementById("currentStudentImg");
+            imgElement.src = reader.result;
+        };
+        reader.readAsDataURL(event.target.files[0]);
+    });
+
+        // Handle form submission
+        $("#editStudentForm").on("submit", function (e) {
+            e.preventDefault(); // Prevent default form submission
+
+            // Create FormData object
+            var formData = new FormData(this);
+
+            // Send AJAX request
+            $.ajax({
+                url: $(this).attr("action"),
+                type: "POST",
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function (response) {
+                    if (response.success) {
+                        // Show success message
+                        alert("Student updated successfully!");
+                        // Close the modal
+                        $("#editStudentModal").modal("hide");
+                        // Reload the page or update the table dynamically
+                        location.reload();
+                    } else {
+                        // Show error message
+                        alert("Error: " + response.error);
+                    }
+                },
+                error: function (xhr, status, error) {
+                    // Show error message
+                    alert("An error occurred while updating the student: " + error);
+                }
+            });
+        });
+    });
+
+
+    // Function to show error messages
+    function showError(message) {
+        document.getElementById("modalMessage").innerText = message;
+        document.getElementById("errorModal").style.display = "block";
+    }
+
+    // Function to close the error modal
+    function closeModal() {
+        document.getElementById("errorModal").style.display = "none";
+    }
+    // Search functionality
+    $("#searchInput").on("keyup", function () {
+        var searchText = $(this).val().toLowerCase().trim();
+        $("#studentTableBody tr").each(function () {
+            var rowText = $(this).text().toLowerCase();
+            $(this).toggle(rowText.indexOf(searchText) > -1);
+        });
+    });
+
+   // Display QR code image and student name in the modal when the "View" link is clicked
+$(document).on("click", 'a[data-bs-target="#qrModal"]', function () {
+    var qrCodePath = $(this).data("qrcode");
+    var studentName = $(this).data("student-name");
+    
+    // Set the student name
+    $("#studentNameDisplay").text(studentName);
+    
+    // Set the QR code image
+    var imgHtml = '<img src="{{ url_for("static", filename="") }}' + qrCodePath + '" style="width: 100%;">';
+    $("#qr_code_container").html(imgHtml);
+    
+    $("#qrModal").modal("show");
+});
+
+
+    // Search functionality
+    $("#searchInput").on("keyup", function () {
+        var searchText = $(this).val().toLowerCase().trim();
+        $("#studentTableBody tr").each(function () {
+            var rowText = $(this).text().toLowerCase();
+            $(this).toggle(rowText.indexOf(searchText) > -1);
+        });
+    });
+
+    // Display QR code image in the modal when the "View" link is clicked
+    $(document).on("click", 'a[data-bs-target="#qrModal"]', function () {
+        var qrCodePath = $(this).data("qrcode");
+        var imgHtml = '<img src="{{ url_for("static", filename="") }}' + qrCodePath + '" style="width: 100%;">';
+        $("#qr_code_container").html(imgHtml);
+        $("#qrModal").modal("show");
+    });
+
+</script>
+
+{% endblock %}

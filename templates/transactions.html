@@ -1,0 +1,432 @@
+{% extends 'layouts/scanqr.html' %}
+{% block body %}
+<!-- Background Video -->
+<video autoplay muted loop id="bgVideo">
+    <source src="{{ url_for('static', filename='img/bg.mp4') }}" type="video/mp4">
+    Your browser does not support HTML5 video.
+</video>
+
+<!-- Back Button -->
+<div class="container-fluid position-relative vh-100 d-flex justify-content-center align-items-center">
+    <div class="position-absolute top-0 start-0 m-3">
+        <button id="backButton" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back
+        </button>
+    </div>
+
+    <!-- Scanning QR Code Content -->
+    <div class="text-center">
+        <h2 class="text-light">SCANNING QR CODE</h2>
+        <video id="videoFeed" autoplay playsinline class="img-fluid rounded border border-5 border-danger"></video>
+        <canvas id="qrCanvas" style="display: none;"></canvas>
+    </div>
+</div>
+<div id="dataDisplay"></div>
+
+<!-- Include jsQR and Socket.IO -->
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+
+<!-- Include Font Awesome for the back arrow icon -->
+<script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+
+<script>
+    // Add event listener for the back button
+    document.getElementById("backButton").addEventListener("click", function () {
+        window.history.back(); // Navigate to the previous page
+    });
+
+    document.addEventListener("DOMContentLoaded", function () {
+        const videoFeed = document.getElementById("videoFeed");
+        const qrCanvas = document.getElementById("qrCanvas");
+        const canvasContext = qrCanvas.getContext("2d");
+        const dataDisplay = document.getElementById("dataDisplay");
+
+        let studentData = null; // Store scanned student data
+        let bookData = null; // Store scanned book data
+
+        // Access the camera
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+            .then(function (stream) {
+                videoFeed.srcObject = stream;
+                videoFeed.play();
+                requestAnimationFrame(scanQRCode);
+            })
+            .catch(function (err) {
+                console.error("Error accessing the camera:", err);
+                alert("Failed to access the camera. Please ensure you have granted permission.");
+            });
+
+        // Function to scan QR codes
+        function scanQRCode() {
+            if (videoFeed.readyState === videoFeed.HAVE_ENOUGH_DATA) {
+                qrCanvas.width = videoFeed.videoWidth;
+                qrCanvas.height = videoFeed.videoHeight;
+                canvasContext.drawImage(videoFeed, 0, 0, qrCanvas.width, qrCanvas.height);
+
+                const imageData = canvasContext.getImageData(0, 0, qrCanvas.width, qrCanvas.height);
+                const code = jsQR(imageData.data, imageData.width, imageData.height, {
+                    inversionAttempts: "dontInvert",
+                });
+
+                if (code) {
+                    console.log("Scanned QR Code (Raw):", code.data);  // Debugging
+
+                    // Parse the QR code data (plain text or JSON)
+                    let parsedData;
+                    if (isValidJSON(code.data)) {
+                        // If the data is valid JSON, parse it
+                        parsedData = JSON.parse(code.data);
+                    } else {
+                        // If the data is plain text, convert it to JSON
+                        parsedData = parsePlainTextData(code.data);
+                    }
+
+                    // Validate the parsed data structure
+                    if (parsedData && validateQRData(parsedData)) {
+                        // Check if the scanned data is for a student or book
+                        if (parsedData.Type === "Student") {
+                            studentData = parsedData; // Store student data
+                            showStudentModal(studentData); // Show student modal
+                        } else if (parsedData.Type === "Book") {
+                            bookData = parsedData; // Store book data
+                            showBookModal(bookData); // Show book modal
+                        }
+                    } else {
+                        console.error("Invalid QR code data structure:", parsedData);  // Debugging
+                        alert("Invalid QR Code Format: Data structure is incorrect.");
+                    }
+                }
+            }
+            requestAnimationFrame(scanQRCode);
+        }
+
+        // Function to check if a string is valid JSON
+        function isValidJSON(data) {
+            try {
+                JSON.parse(data);
+                return true;
+            } catch (e) {
+                return false;
+            }
+        }
+
+        // Function to parse plain text data into a JSON object
+        function parsePlainTextData(data) {
+            const lines = data.split("\n");  // Split the data by newlines
+            const result = {};
+
+            lines.forEach(line => {
+                const [key, value] = line.split(":").map(part => part.trim());  // Split each line by ":" and trim whitespace
+                if (key && value) {
+                    result[key] = value;  // Add the key-value pair to the result object
+                }
+            });
+
+            // Add the "Type" field if it's not already present
+            if (!result.Type) {
+                result.Type = "Student";  // Default to "Student" if the type is not specified
+            }
+
+            return result;
+        }
+
+        // Function to validate the structure of the QR code data
+        function validateQRData(data) {
+            if (data.Type === "Student") {
+                return (
+                    data.Name !== undefined &&
+                    data.Birthdate !== undefined &&
+                    data.Phone !== undefined &&
+                    data.Email !== undefined &&
+                    data.USN !== undefined &&
+                    data.Program !== undefined &&
+                    data.Year !== undefined
+                );
+            } else if (data.Type === "Book") {
+                return (
+                    data.AccessionNumber !== undefined &&
+                    data.BookTitle !== undefined &&
+                    data.Author !== undefined &&
+                    data.Genre !== undefined &&
+                    data.PublicationYear !== undefined
+                );
+            } else {
+                return false;
+            }
+        }
+
+        // Function to display the student modal
+        function showStudentModal(data) {
+    // Check if a modal already exists and remove it
+    const existingModal = document.querySelector(".modal");
+    if (existingModal) {
+        document.body.removeChild(existingModal);
+    }
+
+    const modalContent = `
+        <div class="modal-content" style="max-width: 700px;">
+            <span class="close">&times;</span>
+            <div class="d-flex justify-content-center align-items-center">
+                <div class="form-group mb-3 text-center">
+                    <img src="static/img/121.png" id="profileImage" alt="Student Image" 
+                    style="width: 150px; height: 150px;">
+                </div>
+                <div style="flex: 1; padding-left: 30px">
+                    <h2>Student QR Code Scanned</h2>
+                    <div><strong>Name:</strong> ${data.Name}</div>
+                    <div><strong>Birthdate:</strong> ${data.Birthdate}</div>
+                    <div><strong>Phone:</strong> ${data.Phone}</div>
+                    <div><strong>Email:</strong> ${data.Email}</div>
+                    <div><strong>USN:</strong> ${data.USN}</div>
+                    <div><strong>Program:</strong> ${data.Program}</div>
+                    <div><strong>Year:</strong> ${data.Year}</div>
+                </div>
+            </div>
+            <div class="text-center" style="margin-top: 20px;">
+                <button id="borrowButton" type="button" class="btn btn-success">
+                Borrow Book</button>
+                <button id="returnButton" type="button" class="btn btn-warning">
+                Return Book</button>
+            </div>
+        </div>`;
+
+    const modal = document.createElement("div");
+    modal.className = "modal";
+    modal.innerHTML = modalContent;
+    document.body.appendChild(modal);
+
+    modal.style.display = "block";
+
+    // Close the modal when the close button is clicked
+    const closeButton = modal.querySelector(".close");
+    closeButton.onclick = function () {
+        modal.style.display = "none";
+        document.body.removeChild(modal);
+    };
+
+    // Optional: Close the modal when clicking outside of it
+    window.onclick = function (event) {
+        if (event.target === modal) {
+            modal.style.display = "none";
+            document.body.removeChild(modal);
+        }
+    };
+
+
+            // Handle "Borrow Book" button click
+            const borrowButton = modal.querySelector("#borrowButton");
+            if (borrowButton) {
+                borrowButton.onclick = function () {
+                    sessionStorage.setItem("action", "borrow");
+                    modal.style.display = "none";
+                    document.body.removeChild(modal);
+                    alert("Please scan the book QR code.");
+                };
+            }
+
+            // Handle "Return Book" button click
+            const returnButton = modal.querySelector("#returnButton");
+            if (returnButton) {
+                returnButton.onclick = function () {
+                    sessionStorage.setItem("action", "return");
+                    modal.style.display = "none";
+                    document.body.removeChild(modal);
+                    alert("Please scan the book QR code.");
+                };
+            }
+        }
+
+        function showBookModal(data) {
+    // Check if a modal already exists and remove it
+    const existingModal = document.querySelector(".modal");
+    if (existingModal) {
+        document.body.removeChild(existingModal);
+    }
+
+    const modalContent = `
+        <div class="modal-content" style="max-width: 700px;">
+            <span class="close">&times;</span>
+            <div class="d-flex justify-content-center align-items-center">
+                <div style="flex: 0 0 150px; margin-right: 20px;">
+                    <img src="static/img/122.png" alt="Book Cover" style="width: 150px; height: auto;">
+                </div>
+                <div style="flex: 1; padding-left: 30px">
+                    <h3>Book Information</h3>
+                    <div><strong>Title:</strong> ${data.BookTitle}</div>
+                    <div><strong>Author:</strong> ${data.Author}</div>
+                    <div><strong>Genre:</strong> ${data.Genre}</div>
+                    <div><strong>Published Year:</strong> ${data.PublicationYear}</div>
+                </div>
+            </div>
+            <div class="text-center" style="margin-top: 20px;">
+                <button id="confirmButton" type="button" class="btn btn-success btn-sm" style="width:100px;">Confirm</button>
+            </div>
+        </div>`;
+
+    const modal = document.createElement("div");
+    modal.className = "modal";
+    modal.innerHTML = modalContent;
+    document.body.appendChild(modal);
+
+    modal.style.display = "block";
+
+    // Close the modal when the close button is clicked
+    const closeButton = modal.querySelector(".close");
+    closeButton.onclick = function () {
+        modal.style.display = "none";
+        document.body.removeChild(modal);
+    };
+
+    // Optional: Close the modal when clicking outside of it
+    window.onclick = function (event) {
+        if (event.target === modal) {
+            modal.style.display = "none";
+            document.body.removeChild(modal);
+        }
+    };
+
+
+            // Handle "Confirm" button click
+const confirmButton = modal.querySelector("#confirmButton");
+if (confirmButton) {
+    confirmButton.onclick = function () {
+        const action = sessionStorage.getItem("action");
+        if (action && studentData && bookData) {
+            // Combine student and book data into a single transaction object
+            const transactionData = {
+                student: studentData, // Data from the student QR code
+                book: bookData,       // Data from the book QR code
+                action: action        // Action (e.g., "borrow" or "return")
+            };
+
+            // Log the transaction data for debugging
+            console.log("Sending request with data:", JSON.stringify(transactionData, null, 2));
+
+            // Send the request to the backend
+            fetch("/process_transaction", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(transactionData),
+            })
+                .then((response) => {
+                    console.log("Response status:", response.status); // Log the status code
+                    if (!response.ok) {
+                        return response.text().then(text => { throw new Error(text); }); // Log the response body
+                    }
+                    return response.json();
+                })
+                .then((data) => {
+                    console.log("Backend Response:", data); // Log the response
+                    if (data.success) {
+                        alert("Transaction successful!");
+
+                        // Redirect based on the action
+                        if (action === "borrow") {
+                            window.location.href = "/borrow"; // Redirect to borrow.html
+                        } else if (action === "return") {
+                            window.location.href = "/return_books"; // Redirect to return_books.html
+                        } else {
+                            alert("Invalid action. Redirecting to transactions page.");
+                            window.location.href = "/transactions"; // Fallback redirect
+                        }
+                    } else {
+                        alert("Transaction failed: " + (data.message || "Unknown error"));
+                    }
+                })
+                .catch((error) => {
+                    console.error("Error:", error);
+                    alert("An error occurred while processing the transaction: " + error.message);
+                });
+        } else {
+            alert("Please scan both the student and book QR codes before confirming.");
+        }
+    };
+}
+    }})
+</script>
+
+<style>
+    /* Background Video */
+    #bgVideo {
+        position: fixed;
+        right: 0;
+        bottom: 0;
+        top: -12%;
+        left: -12%;
+        min-width: 100%;
+        min-height: 100%;
+        z-index: -1;
+        object-fit: cover;
+    }
+
+    /* Scanner Interface */
+    #videoFeed {
+        width: 100%;
+        max-width: 600px;
+        border: 5px solid #670074;
+        border-radius: 10px;
+    }
+
+    /* Modal Dialog */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 9999;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(0, 0, 0, 0.4);
+    }
+
+    .modal-content {
+        background-color: #fefefe;
+        margin: 15% auto;
+        padding: 20px;
+        border-radius: 10px;
+        max-width: 80%;
+    }
+
+    .close {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+    }
+
+    .close:hover,
+    .close:focus {
+        color: black;
+        text-decoration: none;
+        cursor: pointer;
+    }
+
+    /* Transaction Page */
+    .transaction-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .transaction-card {
+        background-color: #fff;
+        border-radius: 10px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
+        padding: 20px;
+    }
+
+    .transaction-card h3 {
+        margin-top: 0;
+        margin-bottom: 10px;
+    }
+
+    .transaction-card p {
+        margin-top: 0;
+    }
+</style>
+{% endblock %}

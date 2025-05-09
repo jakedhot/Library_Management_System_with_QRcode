@@ -1,0 +1,448 @@
+{% extends 'layouts/user.html' %}
+
+{% block body %}
+<style>
+    .scrollable-container {
+        max-height: 500px;
+        overflow-y: auto;
+    }
+    .sticky-header {
+        position: sticky;
+        top: 0;
+        background-color: lightgray; 
+        z-index: 1;
+    }
+</style>
+
+<div class="container-fluid p-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h1>Available Books</h1>
+
+        <div class="d-flex align-items-center">
+            <button
+                type="button"
+                class="btn btn-primary rounded-end-1"
+                style="height: 40px; width: 160px"
+                data-bs-toggle="modal"
+                data-bs-target="#exampleModal"
+            >
+                Click to Add
+            </button>
+
+            <!-- Add Books Modal -->
+            <div
+                class="modal fade"
+                id="exampleModal"
+                tabindex="-1"
+                aria-labelledby="exampleModalLabel"
+                aria-hidden="true"
+            >
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h1 class="modal-title fs-5" id="exampleModalLabel">
+                                Add Books
+                            </h1>
+                            <button
+                                type="button"
+                                class="btn-close"
+                                data-bs-dismiss="modal"
+                                aria-label="Close"
+                            ></button>
+                        </div>
+                        <div class="modal-body">
+                            <form
+                                class="p-3"
+                                id="add_books_form"
+                                action="{{ url_for('add_books') }}"
+                                method="post"
+                                enctype="multipart/form-data"
+                            >
+                                <div class="mb-3">
+                                    <label for="acc_number" class="form-label">Accession Number</label>
+                                    <input
+                                        type="text"
+                                        name="acc_number"
+                                        class="form-control"
+                                        id="acc_number"
+                                    / required>
+                                    <label for="call_number" class="form-label">Call Number</label>
+                                    <input
+                                        type="text"
+                                        name="call_number"
+                                        class="form-control"
+                                        id="acc_number"
+                                    / required>
+
+                                    <label for="title" class="form-label">Book Title</label>
+                                    <input
+                                        type="text"
+                                        name="title"
+                                        class="form-control"
+                                        id="title"
+                                    / required>
+
+                                    <label for="author" class="form-label">Author</label>
+                                    <input
+                                        type="text"
+                                        name="author"
+                                        class="form-control"
+                                        id="author"
+                                    / required>
+
+                                    <label for="genre" class="form-label">Genre</label>
+                                    <select name="genre" class="form-control" id="genre" required>
+                                        <option value="">Select Genre</option>
+                                        <option value="Book">Business Education Collections</option>
+                                        <option value="Magazine">Reference Collections</option>
+                                        <option value="Articles">General Education Collections</option>
+                                        <option value="Fiction">Computer Education Collections</option>
+                                        <option value="Non-fiction">Thesis Collections</option>
+                                        <option value="Science Fiction">Periodical Section</option>
+                                    </select>
+                                    
+
+                                    <label for="date_published" class="form-label">Date Published</label>
+                                    <input
+                                        type="date"
+                                        name="date_published"
+                                        class="form-control"
+                                        id="date_published"
+                                    / required>
+
+                                    <label for="book_img" class="form-label">Book Image</label>
+                                    <input
+                                    type="file" 
+                                    class="form-control" 
+                                    name="book_image" 
+                                    id="book_image" 
+                                    accept="image/*" 
+                                    / required>
+                                </div>
+                                <div class="d-flex justify-content-end">
+                                    <button
+                                        type="button"
+                                        class="btn btn-secondary me-2"
+                                        data-bs-dismiss="modal"
+                                    >
+                                        Close
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        class="btn btn-primary"
+                                    >
+                                        Save changes
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="container mt-3">
+                <div class="input-group">
+                    <span class="input-group-text"><i class="fas fa-search"></i></span>
+                    <input
+                        type="text"
+                        class="form-control"
+                        id="searchInput"
+                        placeholder="Search..."
+                        aria-label="Search"
+                        aria-describedby="basic-addon1"
+                    />
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container mt-4 rounded-3 p-2 scrollable-container">
+        <table class="table table-striped table-hover"> 
+            <thead class="table-dark sticky-header">
+                <tr>
+                    <th>#</th>
+                    <th>Book Cover</th>
+                    <th>Accession Number</th>
+                    <th>Call Number</th>
+                    <th>Book Title</th>
+                    <th>Author</th>
+                    <th>Genre</th>
+                    <th>Date Published</th>
+                    <th>Status</th>
+                    <th>QR Code</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="bookTableBody">
+                {% for book in books %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td><img src="{{ book[9] }}" alt="Book Cover" style="width: 50px; height: auto;"></td>
+                    <td>{{ book[1] }}</td>
+                    <td>{{ book[2] }}</td>
+                    <td>{{ book[3] }}</td>
+                    <td>{{ book[4] }}</td>
+                    <td>{{ book[5] }}</td>
+                    <td>{{ book[6] }}</td>
+                    <td>{{ book[10] }}</td>
+                    <td>
+                        <a href="#" class="view-qr" data-bs-toggle="modal" data-bs-target="#qrModal" data-qrcode="{{ book[8] }}" data-title="{{ book[3] }}" data-acc-number="{{ book[1] }}">
+                            View
+                        </a>
+                    </td>
+                    <td>
+                        <a method="POST" href="#" data-bs-action="{{ url_for('book_update_data', book_id=book[0]) }}" 
+                           data-book-id="{{ book[0] }}" 
+                           data-acc-number="{{ book[1] }}" 
+                           data-call-number="{{ book[2] }}" 
+                           data-title="{{ book[3] }}" 
+                           data-author="{{ book[4] }}" 
+                           data-genre="{{ book[5] }}" 
+                           data-date-published="{{ book[6] }}" 
+                           data-book-img="{{ book[9] }}" 
+                           class="btn btn-warning btn-warning-custom openEditBookModal">
+                           Edit
+                        </a>
+                        <a method="POST" href="{{ url_for('book_delete_data', book_id=book[0]) }}" class="btn btn-danger">Delete</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>            
+        </table>
+    </div>  
+    
+
+<!-- QR Code Modal -->
+<div class="modal fade" id="qrModal" tabindex="-1" aria-labelledby="qrModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="qrModalLabel">
+                    <span id="bookTitle"></span> <!-- Book title will be inserted here -->
+                </h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <div id="qr_code_container" style="border: 3px solid rgb(6, 2, 238); padding: 10px;"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="saveQR">Download</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal fade" id="editBookModal" tabindex="-1" aria-labelledby="modalEditBookTargetLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <!-- Modal Header -->
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="modalEditBookTargetLabel">Edit Book</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="modal-body">
+                <form class="p-3" id="editBooksForm" action="" method="post" enctype="multipart/form-data">
+                    <div class="row">
+                        <!-- Book Image on the Left Side -->
+                        <div class="col-md-4">
+                            <div class="form-group mb-3">
+                                <div id="currentBookImgContainer">
+                                    <img id="currentBookImg" src="" alt="Current Book Image" style="width: 100%; height: auto; padding-bottom: 10px;">
+                                </div>
+                                <div class="mb-3">
+                                    <input type="file" name="editBookImg" class="form-control" id="editBookImg" accept="image/*">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Form Data on the Right Side -->
+                        <div class="col-md-8">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="editAccNumber" class="form-label">Accession Number</label>
+                                    <input type="text" name="editAccNumber" class="form-control" id="editAccNumber" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="editCallNumber" class="form-label">Call Number</label>
+                                    <input type="text" name="editCallNumber" class="form-control" id="editCallNumber" required>
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="editTitle" class="form-label">Book Title</label>
+                                    <input type="text" name="editTitle" class="form-control" id="editTitle" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="editAuthor" class="form-label">Author</label>
+                                    <input type="text" name="editAuthor" class="form-control" id="editAuthor" required>
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="editGenre" class="form-label">Genre</label>
+                                    <select name="editGenre" class="form-control" id="editGenre" required>
+                                        <option value="">Select Genre</option>
+                                        <option value="Book">Business Education Collections</option>
+                                        <option value="Magazine">Reference Collections</option>
+                                        <option value="Articles">General Education Collections</option>
+                                        <option value="Fiction">Computer Education Collections</option>
+                                        <option value="Non-fiction">Thesis Collections</option>
+                                        <option value="Science Fiction">Periodical Section</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="editDatePublished" class="form-label">Date Published</label>
+                                    <input type="date" name="editDatePublished" class="form-control" id="editDatePublished" required>
+                                </div>
+                            </div>
+
+                            <!-- Buttons -->
+                            <div class="row mb-3">
+                                <div class="col-md-12 d-flex justify-content-end">
+                                    <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Close</button>
+                                    <button type="submit" class="btn btn-primary">Save changes</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<script>
+    $(document).on("click", ".openEditBookModal", function () {
+        $("#editBookModal").modal("show");
+        
+        var action = $(this).data("bs-action");
+        var accNumber = $(this).data("acc-number");
+        var callNumber = $(this).data("call-number");
+        var title = $(this).data("title");
+        var author = $(this).data("author");
+        var genre = $(this).data("genre");
+        var datePublished = $(this).data("date-published");
+        var bookImg = $(this).data("book-img");
+        
+        // Store initial values
+        $("#editBooksForm").data("initial-values", {
+            accNumber: accNumber,
+            callNumber: callNumber,
+            title: title,
+            author: author,
+            genre: genre,
+            datePublished: datePublished,
+            bookImg: bookImg
+        });
+
+        $("#editBooksForm").attr("action", action);
+        $("#editAccNumber").val(accNumber);
+        $("#editCallNumber").val(callNumber);
+        $("#editTitle").val(title);
+        $("#editAuthor").val(author);
+        $("#editGenre").val(genre);
+        $("#editDatePublished").val(datePublished);
+        $("#currentBookImg").attr("src", bookImg);
+    });
+
+    document.getElementById('editBookImg').addEventListener('change', function(event) {
+        var reader = new FileReader();
+        reader.onload = function(){
+            var imgElement = document.getElementById('currentBookImg');
+            imgElement.src = reader.result;
+        }
+        reader.readAsDataURL(event.target.files[0]);
+    });
+
+    $("#editBooksForm").on("submit", function (e) {
+        e.preventDefault(); // Prevent form submission
+
+        var initialValues = $(this).data("initial-values");
+        var currentValues = {
+            accNumber: $("#editAccNumber").val(),
+            callNumber: $("#editCallNumber").val(),
+            title: $("#editTitle").val(),
+            author: $("#editAuthor").val(),
+            genre: $("#editGenre").val(),
+            datePublished: $("#editDatePublished").val(),
+            bookImg: $("#currentBookImg").attr("src")
+        };
+
+        // Compare initial and current values
+        var hasChanges = false;
+        for (var key in initialValues) {
+            if (initialValues[key] !== currentValues[key]) {
+                hasChanges = true;
+                break;
+            }
+        }
+
+        if (!hasChanges) {
+            alert("No changes detected. Please make changes before saving.");
+            return;
+        }
+
+        // If changes are detected, submit the form
+        this.submit();
+    });
+
+function showError(message) {
+    document.getElementById("modalMessage").innerText = message;
+    document.getElementById("errorModal").style.display = "block";
+}
+
+function closeModal() {
+    document.getElementById("errorModal").style.display = "none";
+}
+
+
+    $(document).ready(function () {
+        // Handle search input keyup event
+        $("#searchInput").on("keyup", function () {
+            var searchText = $(this).val().toLowerCase();
+
+            // Filter table rows based on search input
+            $("#bookTableBody tr").filter(function () {
+                $(this).toggle($(this).text().toLowerCase().indexOf(searchText) > -1);
+            });
+        });
+
+        // Display QR code image in the modal when the "View" link is clicked
+        $(document).on("click", ".view-qr", function () {
+    // Get the QR code path and book title from the data attributes
+    var qrCodePath = $(this).data("qrcode"); // Full path to the QR code image
+    var bookTitle = $(this).data("title"); // Book title
+
+    // Set the book title in the modal header
+    $("#bookTitle").text("QR Code for: " + bookTitle); // Update modal title
+
+    // Set the QR code image in the modal body
+    var imgHtml = '<img src="' + qrCodePath + '" style="width: auto; max-width: 100%;">';
+    $("#qr_code_container").html(imgHtml);
+});
+        $(document).on("click", "#saveQR", function () {
+    // Get the QR code image path
+    var qrCodeImage = $("#qr_code_container img").attr("src"); // Path to the QR code image
+    var bookTitle = $("#bookTitle").text().replace(/ /g, "_"); // Book title (replace spaces with underscores)
+    var accNumber = $(".view-qr").data("acc-number"); // Accession number
+
+    // Create a temporary anchor element to trigger the download
+    var link = document.createElement("a");
+    link.href = qrCodeImage; // Set the href to the QR code image path
+    link.download = "QR_Code_" + bookTitle + "_" + accNumber + ".png"; // Set the download filename
+    document.body.appendChild(link); // Append the link to the document
+    link.click(); // Trigger the download
+    document.body.removeChild(link); // Remove the link from the document
+});
+    });
+</script>
+</div>
+{% endblock %}

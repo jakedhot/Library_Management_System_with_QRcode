@@ -1,0 +1,51 @@
+{% extends 'layouts/user.html' %} 
+{% block body %}
+<div class="d-flex justify-content-center p-5">
+    <form id="myForm" action="{{ url_for('book_update_data', book_id=data[0]) }}" method="post" class="shadow-lg p-4 rounded-4 w-100">
+        <div class="mb-3 d-flex justify-content-between align-items-center"> 
+            <h1><span class="badge rounded-pill text-bg-primary ">Update Book Information</span></h1>
+        </div>
+        <div class="d-flex gap-10">
+            <!-- Left -->
+            <div class="w-50">
+                <div class="d-flex gap-5">
+                    <div class="mb-3 w-50">
+                        <label for="acc_number" class="form-label">Accession Number</label>
+                        <input type="text" name="acc_number" class="form-control" id="acc_number" value="{{ data[1] }}" required>
+                    </div>
+
+                    <div class="mb-3 w-30">
+                        <label for="title" class="form-label">Book Title</label>
+                        <input type="text" name="title" class="form-control" id="title" value="{{ data[2] }}" required>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="author" class="form-label">Author</label>
+                    <input type="text" name="author" class="form-control" id="author" value="{{ data[3] }}" required>
+                </div>
+
+                <div class="mb-3">
+                    <label for="genre" class="form-label">Genre</label>
+                    <select name="genre" class="form-control" id="genre" required>
+                        <option value="">Select Genre</option>
+                        <option value="Book" {% if data[4] == "Book" %} selected {% endif %}>Book</option>
+                        <option value="Magazine" {% if data[4] == "Magazine" %} selected {% endif %}>Magazine</option>
+                        <option value="Articles" {% if data[4] == "Articles" %} selected {% endif %}>Articles</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label for="date_published" class="form-label">Date Published</label>
+                    <input type="text" name="date_published" class="form-control" id="date_published" value="{{ data[5] }}" required>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-end mt-3">
+            <input type="submit" value="Save" class="btn btn-primary">
+        </div>
+    </form>
+</div>
+{% endblock %}

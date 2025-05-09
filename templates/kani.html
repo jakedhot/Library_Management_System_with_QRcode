@@ -1,0 +1,82 @@
+<!-- Add this script to include QuaggaJS -->
+<script src="https://cdn.jsdelivr.net/npm/quagga/dist/quagga.min.js"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var scanQRCodeBtn = document.getElementById('scanQRCodeBtn');
+        var qrScanner = document.getElementById('qrScanner');
+        var videoFeed = document.getElementById('videoFeed');
+        var modal = document.getElementById('exampleModal');
+        var tableBody = document.querySelector('tbody');
+
+        // Initialize QuaggaJS
+        Quagga.init({
+            inputStream: {
+                type: 'LiveStream',
+                target: videoFeed,
+                constraints: {
+                    facingMode: 'environment' // Use the rear camera
+                }
+            },
+            decoder: {
+                readers: ['code_128_reader'] // You can configure additional barcode formats if needed
+            }
+        }, function (err) {
+            if (err) {
+                console.error(err);
+                return;
+            }
+            Quagga.start();
+        });
+
+        // Listen for when a barcode is detected
+        Quagga.onDetected(function (data) {
+            var scannedCode = data.codeResult.code;
+            // Here you can process the scanned QR code and update the table
+            var bookInfo = parseScannedCode(scannedCode);
+
+            // Update table with the scanned book information
+            updateTable(bookInfo);
+        });
+
+        scanQRCodeBtn.addEventListener('click', function () {
+            qrScanner.style.display = 'block'; // Show QR scanner
+        });
+
+        var closeModalBtns = document.querySelectorAll('[data-bs-dismiss="modal"]');
+        closeModalBtns.forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                qrScanner.style.display = 'none'; // Hide QR scanner when modal is closed
+            });
+        });
+
+        // Function to parse the scanned QR code
+        function parseScannedCode(code) {
+            try {
+                // Assuming the QR code contains book information encoded as JSON
+                var bookInfo = JSON.parse(code);
+                return bookInfo;
+            } catch (error) {
+                console.error('Error parsing scanned QR code:', error);
+                return null;
+            }
+        }
+
+        // Function to update the table with the scanned book information
+        function updateTable(bookInfo) {
+            if (bookInfo) {
+                var newRow = document.createElement('tr');
+                newRow.innerHTML = `
+                    <td>${tableBody.children.length + 1}</td>
+                    <td>${bookInfo.title}</td>
+                    <td>${bookInfo.author}</td>
+                    <td>${bookInfo.volume}</td>
+                    <td>${bookInfo.publicationDate}</td>
+                    <td>${bookInfo.category}</td>
+                    <td class="d-flex justify-content-center">Status</td>
+                `;
+                tableBody.appendChild(newRow);
+            }
+        }
+    });
+</script>

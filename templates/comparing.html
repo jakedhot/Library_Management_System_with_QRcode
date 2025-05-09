@@ -1,0 +1,279 @@
+{% extends 'layouts/scanqr.html' %} {% block body %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div
+                class="d-flex justify-content-center align-items-center vh-100"
+            >
+                <div class="text-center">
+                    <h2>TESTING QR CODE</h2>
+                    <h3>Normal QR vs Reed Solomon QR</h3>
+                    <img
+                        id="videoFeed"
+                        src="{{ url_for('video_feed') }}"
+                        class="img-fluid rounded border border-5 border-danger"
+                        alt="Camera Feed"
+                    />
+                    <h2>SCANNING QR CODE</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script> -->
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        var videoFeed = document.getElementById("videoFeed");
+        var modal = document.getElementById("exampleModal");
+
+        // Show QR scanner when the transaction HTML page is displayed
+        videoFeed.src = "{{ url_for('video_feed') }}";
+
+        // Initialize QuaggaJS for QR code scanning
+        Quagga.init(
+            {
+                inputStream: {
+                    name: "Live",
+                    type: "LiveStream",
+                    target: videoFeed,
+                },
+                decoder: {
+                    readers: ["code_128_reader"],
+                },
+            },
+            function (err) {
+                if (err) {
+                    console.error(err);
+                    return;
+                }
+                Quagga.onDetected(function (result) {
+                    // Stop scanning
+                    Quagga.stop();
+
+                    // Get the detected QR code
+                    var code = result.codeResult.code;
+
+                    // Redirect to the borrow HTML route with the detected QR code as a parameter
+                    window.location.href = "/borrow?code=" + code;
+                });
+
+                Quagga.start();
+            },
+        );
+    });
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+<script type="text/javascript">
+    var socket = io.connect(
+        "http://" + document.domain + ":" + location.port + "/test",
+    );
+
+    socket.on("connect", function () {
+        socket.emit("get_qr_data");
+    });
+
+    socket.on("qr_data", function (data) {
+        // Handle received data here
+        console.log("Received QR data:", data);
+
+        // Create a modal dialog for each data item
+        var modalContent;
+        if (data.Type === "Student") {
+            modalContent =
+                '<div class="modal-content">' +
+                '<span class="close">&times;</span>' +
+                "<h2>Student Data</h2>" +
+                "<div><strong>Name:</strong> " +
+                data.Name +
+                "</div>" +
+                "<div><strong>Email:</strong> " +
+                data.Email +
+                "</div>" +
+                "<div><strong>USN:</strong> " +
+                data.USN +
+                "</div>" +
+                "<div><strong>Phone:</strong> " +
+                data.Phone +
+                "</div>" +
+                "<div><strong>Program:</strong> " +
+                data.Program +
+                "</div>" +
+                "<div><strong>Year:</strong> " +
+                data.Year
+        } else if (data.Type === "Book") {
+            modalContent =
+                '<div class="modal-content">' +
+                '<span class="close">&times;</span>' +
+                "<h2>Book Data</h2>" +
+                "<div><strong>Title:</strong> " +
+                data.BookTitle +
+                "</div>" +
+                "<div><strong>Author:</strong> " +
+                data.Author +
+                "</div>" +
+                "<div><strong>ISBN:</strong> " +
+                data.Genre +
+                "</div>" +
+                "<div><strong>Published Year:</strong> " +
+                data.PublishedYear
+        } else {
+            modalContent = "<p>No modal content available for this type.</p>";
+        }
+
+        // Append the modal content to the DOM or use it as needed
+
+        var modal = document.createElement("div");
+        modal.className = "modal";
+        modal.innerHTML = modalContent;
+        document.body.appendChild(modal);
+
+        // Show the modal
+        modal.style.display = "block";
+
+        // Close the modal when the user clicks on the close button
+        var closeButton = modal.querySelector(".close");
+        closeButton.onclick = function () {
+            modal.style.display = "none";
+            document.body.removeChild(modal); // Remove the modal from the DOM
+        };
+
+        // Handle borrow book button click event
+        var borrowButton = modal.querySelector("#borrowButton");
+        borrowButton.onclick = function () {
+            // Emit an event to the server to save the data
+            // socket.emit('save_qr_data', data);
+            // alert('QR data saved successfully!');
+            fetch("/process_transaction", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(data),
+            })
+                .then((response) => response.text())
+                .then((data) => {
+                    if (data == "Book Borrowed") {
+                        alert("Book is already borrowed!");
+                        window.location.href = "/transactions";
+                    } else if (data == "Waiting for student data") {
+                        alert("Scan student QR code first!");
+                        window.location.href = "/transactions";
+                    } else if (data == "QR Code not recognized") {
+                        alert("QR Code not recognized!");
+                        window.location.href = "/transactions";
+                    } else if (data == "Invalid transaction type") {
+                        alert("Invalid transaction type!");
+                        window.location.href = "/transactions";
+                    } else {
+                        data = JSON.parse(data);
+                        if (data.Type == "Student") {
+                            window.location.href = "/transactions";
+                        } else if (data.Type == "Book") {
+                            window.location.href = "/borrow";
+                        }
+                    }
+                })
+                .catch((error) => console.error("Error:", error));
+        };
+
+        var returnButton = modal.querySelector("#returnButton");
+        returnButton.onclick = function () {
+            fetch("/process_return", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(data),
+            })
+                .then((response) => response.text())
+                .then((data) => {
+                    // if (data == "Book Borrowed") {
+                    //     alert("Book is already borrowed!");
+                    //     window.location.href = "/transactions";
+                    // }
+                    if (data == "Waiting for student data") {
+                        alert("Scan student QR code first!");
+                        window.location.href = "/transactions";
+                    } else if (data == "QR Code not recognized") {
+                        alert("QR Code not recognized!");
+                        window.location.href = "/transactions";
+                    } else if (data == "Invalid transaction type") {
+                        alert("Invalid transaction type!");
+                        window.location.href = "/transactions";
+                    } else {
+                        data = JSON.parse(data);
+                        if (data.Type == "Student") {
+                            window.location.href = "/transactions";
+                        } else if (data.Type == "Book") {
+                            window.location.href = "/return_books";
+                        }
+                    }
+                })
+                .catch((error) => console.error("Error:", error));
+        };
+    });
+</script>
+<style>
+    /* The Modal (background) */
+    .modal {
+        display: none; /* Hidden by default */
+        position: fixed; /* Stay in place */
+        z-index: 1; /* Sit on top */
+        left: 0;
+        top: 0;
+        width: 100%; /* Full width */
+        height: 100%; /* Full height */
+        overflow: auto; /* Enable scroll if needed */
+        background-color: rgba(0, 0, 0, 0.4); /* Black w/ opacity */
+    }
+
+    /* Modal Content/Box */
+    .modal-content {
+        background-color: #fefefe;
+        margin: 15% auto; /* 15% from the top and centered */
+        padding: 20px;
+        border: 1px solid #888;
+        width: 80%; /* Could be more or less, depending on screen size */
+        border-radius: 10px;
+    }
+
+    /* Close Button */
+    .close {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+    }
+
+    .close:hover,
+    .close:focus {
+        color: black;
+        text-decoration: none;
+        cursor: pointer;
+    }
+
+    h2 {
+        text-align: center;
+    }
+
+    #borrowButton,
+    #returnButton {
+        display: block;
+        margin: 10px auto;
+        padding: 10px 20px;
+        background-color: #4caf50;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+
+    #borrowButton:hover,
+    #returnButton:hover {
+        background-color: #45a049;
+    }
+</style>
+<div id="dataDisplay"></div>
+
+{% endblock %}

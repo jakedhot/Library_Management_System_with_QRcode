@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test</title>
+</head>
+<body>
+    <h1>QR Data:</h1>
+    <ul id="qrDataList"></ul>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.3.2/socket.io.js"></script>
+    <script>
+        var socket = io();
+
+        socket.on('connect', function() {
+            console.log('Connected');
+        });
+
+        socket.on('qr_data', function(data) {
+            console.log('New QR data:', data);
+            var qrDataList = document.getElementById('qrDataList');
+            var listItem = document.createElement('li');
+            listItem.textContent = JSON.stringify(data);
+            qrDataList.appendChild(listItem);
+        });
+    </script>
+</body>
+</html>

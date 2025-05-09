@@ -1,0 +1,96 @@
+{% extends 'layouts/user.html' %}
+
+{% block body %}
+<style>
+    .card {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .card:hover {
+        transform: scale(1.05);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+</style>
+
+<div class="p-5 d-flex flex-wrap gap-4 align-content-start">
+    <div class="card rounded-5 overflow-hidden" style="width: 20rem; height: 12rem; background-color: #906e67;">
+        <a href="/books_available" class="text-decoration-none">
+            <div class="card-body">
+                <div class="d-flex text-white">
+                    <h2 class="card-title mx-3">Books Available</h2>
+                    <h1 class="display-3 fw-bolder">{{ available_books }}</h1>
+                </div>
+            </div>
+        </a>
+        <a href="/books_available" class="text-decoration-none">
+            <div class="card-footer rounded-3 bg-white opacity-25">
+                View Details
+            </div>
+        </a>
+    </div>
+    <div class="card rounded-5" style="width: 20rem; height: 12rem; background-color: #2059ac;">
+        <a href="/borrow" class="text-decoration-none">
+            <div class="card-body">
+                <div class="d-flex text-white">
+                    <h2 class="card-title mx-2">Books Borrowed</h2>
+                    <h1 class="display-3 fw-bolder">{{ all_books }}</h1>
+                </div>
+            </div>
+        </a>
+        <a href="/borrow" class="text-decoration-none">
+            <div class="card-footer rounded-3 bg-white opacity-25">
+                View Details
+            </div>
+        </a>
+    </div>
+    <div class="card rounded-5" style="width: 20rem; height: 12rem; background-color: #ffaf47;">
+        <a href="/return_books" class="text-decoration-none">
+            <div class="card-body">
+                <div class="d-flex text-white">
+                    <h2 class="card-title mx-3">Books Returned</h2>
+                    <h1 class="display-3 fw-bolder">{{ returned_books }}</h1>
+                </div>
+            </div>
+        </a>
+        <a href="/return_books" class="text-decoration-none">
+            <div class="card-footer rounded-3 bg-white opacity-25">
+                View Details
+            </div>
+        </a>
+    </div>
+    <div class="card rounded-5" style="width: 20rem; height: 12rem; background-color: #ff5758;">
+        <a href="/overdue" class="text-decoration-none">
+            <div class="card-body">
+                <div class="d-flex text-white">
+                    <h2 class="card-title mx-3">Books Overdue</h2>
+                    <h1 class="display-3 fw-bolder">{{ overdue|length }}</h1>
+                </div>
+            </div>
+        </a>
+        <a href="/overdue" class="text-decoration-none">
+            <div class="card-footer rounded-3 bg-white opacity-25">
+                View Details
+            </div>
+        </a>
+    </div>
+    <div class="card rounded-5" style="width: 20rem; height: 12rem; background-color: #3dc670;">
+        <a href="/most_active" class="text-decoration-none">
+            <div class="card-body">
+                <div class="d-flex text-white">
+                    <h2 class="card-title mx-3">Most Active Patron
+                    </h2>
+                    <h1 class="display-3 fw-bolder">{{ active_students }}</h1>
+                </div>
+            </div>
+        </a>
+        <a href="/most_active" class="text-decoration-none">
+            <div class="card-footer rounded-3 bg-white opacity-25">
+                View Details
+            </div>
+        </a>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,111 @@
+{% extends 'layouts/user.html' %} {% block body %}
+<style>
+    .profile-pic {
+        border-radius: 50%;
+        width: 150px;
+        height: 150px;
+        object-fit: cover;
+        object-position: center;
+        margin-bottom: 20px;
+    }
+    .card-header {
+        background-color: #4caf50;
+        color: white;
+        border-radius: 10px 10px 0 0;
+        font-size: 24px;
+        text-align: center;
+    }
+    .card {
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    .form-control {
+        border-radius: 8px;
+        box-shadow: none;
+    }
+    .btn-primary {
+        background-color: #4caf50;
+        border: none;
+        border-radius: 8px;
+        width: 100%; /* Make button full width */
+    }
+    /* Adjust spacing */
+    .mt-5 {
+        margin-top: 50px;
+    }
+    .mb-3 {
+        margin-bottom: 20px;
+    }
+</style>
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">Student Profile</div>
+                <div class="card-body">
+                    <div class="text-center mb-3">
+                        <!-- Added margin bottom -->
+                        <img
+                            src="https://via.placeholder.com/150"
+                            alt="Profile Picture"
+                            class="profile-pic"
+                        />
+                    </div>
+                    <form>
+                        <div class="form-group">
+                            <input
+                                type="text"
+                                class="form-control"
+                                id="firstName"
+                                placeholder="First Name"
+                                required
+                            />
+                        </div>
+                        <div class="form-group">
+                            <input
+                                type="text"
+                                class="form-control"
+                                id="lastName"
+                                placeholder="Last Name"
+                                required
+                            />
+                        </div>
+                        <div class="form-group">
+                            <input
+                                type="email"
+                                class="form-control"
+                                id="email"
+                                placeholder="Email"
+                                required
+                            />
+                        </div>
+                        <div class="form-group">
+                            <input
+                                type="date"
+                                class="form-control"
+                                id="dob"
+                                placeholder="Date of Birth"
+                                required
+                            />
+                        </div>
+                        <div class="form-group">
+                            <textarea
+                                class="form-control"
+                                id="address"
+                                rows="3"
+                                placeholder="Address"
+                                required
+                            ></textarea>
+                        </div>
+                        <div class="form-group">
+                            <button type="submit" class="btn btn-primary">
+                                Save
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
